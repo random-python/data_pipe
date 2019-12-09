@@ -44,15 +44,15 @@ cdef class RuptorIndex:
         self._store_addr = store_addr
         self._store_size = store_size
 
-    cdef int _stored_size(self):
+    cdef int _active_size(self):
         cdef ruptor_store * store = self._store
         return (store._writer_seq - store._reader_seq) & store._mask_limit
 
     cdef bint _is_empty(self):
-        return self._stored_size() == 0
+        return self._active_size() == 0
 
     cdef bint _is_filled(self):
-        return self._stored_size() == self._store._ring_size
+        return self._active_size() == self._store._ring_size
 
     cdef int _reader_claim(self):
         cdef ruptor_store * store = self._store
@@ -107,7 +107,7 @@ cdef class RuptorIndex:
         ):
         ""
         assert isinstance(index_store, ctypes.Array), "index_store: wrong type"
-        assert sizeof(ruptor_store) >= ctypes.sizeof(index_store), "index_store: wrong size"
+        assert sizeof(ruptor_store) <= ctypes.sizeof(index_store), "index_store: wrong size"
         cdef uintptr_t store_addr = < uintptr_t > ctypes.addressof(index_store)
         cdef int store_size = ctypes.sizeof(index_store)
         cdef ruptor_store * store = < ruptor_store * > store_addr

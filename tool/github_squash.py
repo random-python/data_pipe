@@ -6,7 +6,7 @@ Squash github commits starting from a point
 
 from devrepo import shell
 
-point = "2f0a0619ffb336b643361d99c8798074cd0f60e3"
+point = "02a700108d486f6a13a2eaf2b8f08edb5c20ab1d"
 message = "develop"
 
 shell(f"git reset --soft {point}")
