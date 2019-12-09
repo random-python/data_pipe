@@ -1,0 +1,21 @@
+dist: xenial
+sudo: true
+language: python
+git:
+  depth: 10
+branches:
+  only:
+  - master
+  - /develop/
+matrix:
+  include:
+  - python: 3.8
+    env: TOXENV=py38
+install:
+- pip install tox devrepo
+script:
+- echo $HOME
+- uname -a
+- ip addr
+- python --version
+- tox
