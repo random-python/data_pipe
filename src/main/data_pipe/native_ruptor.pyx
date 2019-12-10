@@ -7,26 +7,46 @@ import ctypes
 from libc.stdint cimport uintptr_t
 
 
+def invoke_futex_wait(resource:ctypes.c_int) -> None:
+    ""
+    assert isinstance(resource, ctypes.c_int), f"resource: wrong type {type(resource)}"
+    cdef uintptr_t resource_addr = < uintptr_t > ctypes.addressof(resource)
+    IF UNAME_SYSNAME == "Linux":
+        native_invoke_futex_wait(< int * > resource_addr)
+    ELSE:
+        raise RuntimeError("failure: non-futex")
+
+
+def invoke_futex_wake(resource:ctypes.c_int) -> None:
+    ""
+    assert isinstance(resource, ctypes.c_int), f"resource: wrong type {type(resource)}"
+    cdef uintptr_t resource_addr = < uintptr_t > ctypes.addressof(resource)
+    IF UNAME_SYSNAME == "Linux":
+        native_invoke_futex_wake(< int * > resource_addr)
+    ELSE:
+        raise RuntimeError("failure: non-futex")
+
+
 def ruptor_store_make() -> ctypes.Array:
     ""
-    return ctypes.c_char * sizeof(ruptor_store)
+    return ctypes.c_char * sizeof(native_ruptor_store)
 
 
 def ruptor_store_size() -> int:
     ""
-    return sizeof(ruptor_store)
+    return sizeof(native_ruptor_store)
 
 
 cdef class RuptorIndex:
     ""
 
     cdef object _index_store  # reference keeper
-    cdef ruptor_store * _store  # underlying struct
+    cdef native_ruptor_store * _store  # underlying struct
     cdef uintptr_t _store_addr
     cdef int _store_size
 
     cdef void _setup(self,
-            ruptor_store * store,
+            native_ruptor_store * store,
             uintptr_t store_addr, int store_size,
             int ring_size, int wait_size,
         ):
@@ -45,7 +65,7 @@ cdef class RuptorIndex:
         self._store_size = store_size
 
     cdef int _active_size(self):
-        cdef ruptor_store * store = self._store
+        cdef native_ruptor_store * store = self._store
         return (store._writer_seq - store._reader_seq) & store._mask_limit
 
     cdef bint _is_empty(self):
@@ -55,7 +75,7 @@ cdef class RuptorIndex:
         return self._active_size() == self._store._ring_size
 
     cdef int _reader_claim(self):
-        cdef ruptor_store * store = self._store
+        cdef native_ruptor_store * store = self._store
         if self._is_empty():
             store._reader_wait += 1
             if store._reader_wait > store._wait_size:
@@ -66,11 +86,11 @@ cdef class RuptorIndex:
             return store._reader_seq & store._mask_index
 
     cdef void _reader_commit(self):
-        cdef ruptor_store * store = self._store
+        cdef native_ruptor_store * store = self._store
         store._reader_seq = (store._reader_seq + 1) & store._mask_limit
 
     cdef int _writer_claim(self):
-        cdef ruptor_store * store = self._store
+        cdef native_ruptor_store * store = self._store
         if self._is_filled():
             store._writer_wait += 1
             if store._writer_wait > store._wait_size:
@@ -81,7 +101,7 @@ cdef class RuptorIndex:
             return store._writer_seq & store._mask_index
 
     cdef int _writer_commit(self):
-        cdef ruptor_store * store = self._store
+        cdef native_ruptor_store * store = self._store
         store._writer_seq = (store._writer_seq + 1) & store._mask_limit
 
     @property
@@ -107,10 +127,10 @@ cdef class RuptorIndex:
         ):
         ""
         assert isinstance(index_store, ctypes.Array), "index_store: wrong type"
-        assert sizeof(ruptor_store) <= ctypes.sizeof(index_store), "index_store: wrong size"
+        assert sizeof(native_ruptor_store) <= ctypes.sizeof(index_store), "index_store: wrong size"
         cdef uintptr_t store_addr = < uintptr_t > ctypes.addressof(index_store)
         cdef int store_size = ctypes.sizeof(index_store)
-        cdef ruptor_store * store = < ruptor_store * > store_addr
+        cdef native_ruptor_store * store = < native_ruptor_store * > store_addr
         self._index_store = index_store
         self._setup(store, store_addr, store_size, ring_size, wait_size)
 
@@ -146,7 +166,7 @@ cdef class RuptorBuffer:
     @classmethod
     def ruptor_store_size(cls) -> int:
         ""
-        return sizeof(ruptor_store)
+        return sizeof(native_ruptor_store)
 
     @classmethod
     def calc_wait_list(cls, wait_size:int, lower:float, upper:float) -> list:

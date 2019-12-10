@@ -4,7 +4,7 @@
 
 cdef extern from "native_any.h" :
 
-    ctypedef struct ruptor_store:
+    ctypedef struct native_ruptor_store:
         int _reader_seq
         int _writer_seq
         int _reader_wait
@@ -14,9 +14,13 @@ cdef extern from "native_any.h" :
         int _mask_index
         int _mask_limit
 
-    void sync_synchronize()
-    bint sync_bool_compare_swap_int(int * value, int value_past, int value_next)
-    bint sync_bool_compare_swap_long(long * value, long value_past, long value_next)
+    void native_synchronize()
+    bint native_bool_compare_swap_int(int * value, int value_past, int value_next)
+    bint native_bool_compare_swap_long(long * value, long value_past, long value_next)
+
+    IF UNAME_SYSNAME == "Linux":
+        void native_invoke_futex_wait(int * futex_addr)
+        void native_invoke_futex_wake(int * futex_addr)
 
 cdef int integer_log2(int value):
     cdef int result = 0
