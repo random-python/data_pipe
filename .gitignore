@@ -105,3 +105,6 @@ venv.bak/
 
 # cffi
 *_cffi.*
+
+
+.externalToolBuilders/
