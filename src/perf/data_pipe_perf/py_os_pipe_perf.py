@@ -25,14 +25,14 @@ def buffer_perf():
     def buffer_reader_sync():
         for index in range(count):
             packet = os.read(reader_fd, 8)
-            address = int.from_bytes(packet, 'little')
-            value = address  # TODO from address
+            addr = int.from_bytes(packet, 'little')
+            value = addr  # TODO from addr
             target[index] = value
 
     def buffer_writer_sync():
         for value in source:
-            address = value  # TODO into address
-            packet = address.to_bytes(8, byteorder='little')
+            addr = value  # TODO into addr
+            packet = addr.to_bytes(8, byteorder='little')
             os.write(writer_fd, packet)
 
     thread_reader = threading.Thread(target=buffer_reader_sync, daemon=True)

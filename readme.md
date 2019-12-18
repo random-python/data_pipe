@@ -45,7 +45,12 @@ sudo pip install data_pipe
 
 ### Usage
 
-study:
+cross-process, cross-framework **rpc**:
+* [basic_trunk.py](https://github.com/random-python/data_pipe/blob/master/src/main/data_pipe/basic_trunk.py)
+* [basic_trunk_test.py](https://github.com/random-python/data_pipe/blob/master/src/test/data_pipe_test/basic_trunk_test.py)
+
+cross-process, cross-framework **queue**:
+* [native_ruptor.pyx](https://github.com/random-python/data_pipe/blob/master/src/main/data_pipe/native_ruptor.pyx)
 * [any_ruptor_perf.py](https://github.com/random-python/data_pipe/blob/master/src/perf/data_pipe_perf/any_ruptor_perf.py)
 
 
