@@ -24,6 +24,15 @@ from trio._core._run import GLOBAL_RUN_CONTEXT as trio_global_context
 
 
 @enum.unique
+class TrunkMode(enum.Enum):
+    "framework type"
+
+    TRIO = enum.auto()
+    CURIO = enum.auto()
+    ASYNCIO = enum.auto()
+
+
+@enum.unique
 class ExecCode(enum.IntEnum):
     "server response status code"
 
@@ -150,7 +159,7 @@ class AnyTrunk:
     async def wait_asyncio_readable(cls, fd:int) -> None:
         loop = asyncio.get_running_loop()
         future = asyncio.Future()
-        future.add_done_callback(lambda : loop.remove_reader(fd))
+        future.add_done_callback(lambda *args : loop.remove_reader(fd))
         loop.add_reader(fd, future.set_result, None)
         await future
 
@@ -158,7 +167,7 @@ class AnyTrunk:
     async def wait_asyncio_writable(cls, fd:int) -> None:
         loop = asyncio.get_running_loop()
         future = asyncio.Future()
-        future.add_done_callback(lambda : loop.remove_writer(fd))
+        future.add_done_callback(lambda *args : loop.remove_writer(fd))
         loop.add_writer(fd, future.set_result, None)
         await future
 
@@ -213,16 +222,28 @@ class AnyTrunk:
             raise RuntimeError(f"no loop")
 
     @classmethod
-    async def spawn_task(cls, coro_func:CoroutineType, *args) -> "AnyTask":
+    async def spawn_task(cls, func:CoroutineType, *args) -> "AnyTask":
         "create and launch new background task"
         if cls.has_trio_loop():
-            return trio.hazmat.spawn_system_task(coro_func, *args)
+            return trio.hazmat.spawn_system_task(func, *args)
         elif cls.has_curio_loop():
-            return await curio.spawn(coro_func, *args)
+            return await curio.spawn(func, *args)
         elif cls.has_asyncio_loop():
-            return asyncio.create_task(coro_func(*args))
+            return asyncio.create_task(func(*args))
         else:
             raise RuntimeError(f"no loop")
+
+    @classmethod
+    def invoke_main(cls, mode:TrunkMode, func:CoroutineType, *args, **kwargs) -> object:
+        "create and launch main framework task"
+        if mode == TrunkMode.TRIO:
+            return trio.run(func, *args, **kwargs)
+        elif mode == TrunkMode.CURIO:
+            return curio.run(func, *args, **kwargs)
+        elif mode == TrunkMode.ASYNCIO:
+            return asyncio.run(func(*args, **kwargs))
+        else:
+            raise RuntimeError(f"no mode: {mode}")
 
     @classmethod
     def default_tracer(cls,

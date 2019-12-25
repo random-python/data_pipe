@@ -9,15 +9,6 @@ from multiprocessing.sharedctypes import RawValue
 from data_pipe.basic_trunk import *
 
 
-@enum.unique
-class Mode(enum.Enum):
-    "framework type"
-
-    TRIO = enum.auto()
-    CURIO = enum.auto()
-    ASYNCIO = enum.auto()
-
-
 class StatusStore(ctypes.Structure):
     "cross-process value"
 
@@ -58,21 +49,10 @@ class RPC:
         return value
 
 
-def setup_loop(mode:Mode, task:CoroutineType) -> None:
-    if mode == Mode.TRIO:
-        trio.run(task)
-    elif mode == Mode.CURIO:
-        curio.run(task)
-    elif mode == Mode.ASYNCIO:
-        asyncio.run(task())
-    else:
-        raise RuntimeError(f"no mode: {mode}")
-
-
-def verify_trunk(client_mode:Mode, server_mode:Mode, runner_class):
+def verify_trunk(client_mode:TrunkMode, server_mode:TrunkMode, runner_class):
 
     runner_name = runner_class.__name__
-    print(f"runner_class={runner_name} :: client_mode={client_mode} server_mode={server_mode}")
+    print(f"runner={runner_name} :: client={client_mode.name} server={server_mode.name}")
 
     counter = StatusStore.make()
     assert counter.value == 0
@@ -102,10 +82,10 @@ def verify_trunk(client_mode:Mode, server_mode:Mode, runner_class):
             await basic_trunk.invoke(RPC.func_zen, 3)
 
     def server_main():
-        setup_loop(server_mode, server_task)
+        BasicTrunk.invoke_main(server_mode, server_task)
 
     def client_main():
-        setup_loop(client_mode, client_task)
+        BasicTrunk.invoke_main(client_mode, client_task)
 
     server_runner = runner_class(target=server_main)
     client_runner = runner_class(target=client_main)
@@ -131,6 +111,6 @@ def verify_trunk(client_mode:Mode, server_mode:Mode, runner_class):
 def test_trunk():
     print()
     for runner_class in [threading.Thread, multiprocessing.Process]:
-        for client_mode in Mode:
-            for server_mode in Mode:
+        for client_mode in TrunkMode:
+            for server_mode in TrunkMode:
                 verify_trunk(client_mode, server_mode, runner_class)
